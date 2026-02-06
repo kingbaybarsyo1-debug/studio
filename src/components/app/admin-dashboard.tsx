@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,7 +26,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { collection, query } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase/auth/use-user';
 import { LoaderCircle } from 'lucide-react';
 
 const categorySchema = z.object({
@@ -46,11 +45,22 @@ const contentSchema = z.object({
 });
 
 export function AdminDashboard() {
-  const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isAdmin = localStorage.getItem('isAdmin');
+      if (isAdmin !== 'true') {
+        router.push('/login');
+      } else {
+        setIsAuthorized(true);
+      }
+    }
+  }, [router]);
+  
   const categoriesQuery = useMemo(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
@@ -89,12 +99,6 @@ export function AdminDashboard() {
   });
   
   useEffect(() => {
-    if (!userLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, userLoading, router]);
-
-  useEffect(() => {
     registerSubCategory('parentId');
     registerContent('categoryId');
   }, [registerSubCategory, registerContent]);
@@ -121,7 +125,7 @@ export function AdminDashboard() {
     resetContent();
   };
   
-  if (userLoading || !user) {
+  if (!isAuthorized) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
