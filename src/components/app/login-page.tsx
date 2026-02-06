@@ -71,9 +71,14 @@ export function LoginPage() {
                 router.push('/admin');
             } catch (error: any) {
                  if (error.code === 'auth/email-already-in-use') {
-                    // If user already exists, just sign them in.
+                    // If user already exists, just sign them in and ensure profile is set.
                     try {
-                        await signInWithEmailAndPassword(auth, email, password);
+                        const result = await signInWithEmailAndPassword(auth, email, password);
+                        setUserProfile(firestore, result.user.uid, {
+                            email: result.user.email,
+                            displayName: 'Admin',
+                            photoURL: null,
+                        });
                         toast({ title: 'تم تسجيل الدخول كمسؤول' });
                         router.push('/admin');
                     } catch (signInError: any) {
