@@ -18,7 +18,6 @@ export function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading } = useUser();
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
   useEffect(() => {
@@ -32,11 +31,14 @@ export function LoginPage() {
     e.preventDefault();
     if (!auth || !firestore) return;
 
-    if (email !== 'admin@example.com' || password !== 'admn2026') {
+    const email = 'admin@example.com';
+    const correctPassword = 'admn2026';
+
+    if (password !== correctPassword) {
         toast({
             variant: 'destructive',
-            title: 'بيانات اعتماد غير صالحة',
-            description: 'البريد الإلكتروني أو كلمة المرور غير صحيحة.',
+            title: 'كلمة مرور غير صالحة',
+            description: 'الرجاء التأكد من كلمة المرور والمحاولة مرة أخرى.',
         });
         return;
     }
@@ -62,7 +64,6 @@ export function LoginPage() {
                 toast({ title: 'تم إنشاء حساب المسؤول وتسجيل الدخول' });
                 router.push('/admin');
             } catch (createError: any) {
-                // This might happen if user exists but password was wrong on first try.
                  if (createError.code === 'auth/email-already-in-use') {
                     toast({
                         variant: 'destructive',
@@ -92,21 +93,10 @@ export function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">تسجيل دخول المسؤول</CardTitle>
-          <CardDescription>ادخل لإدارة المحتوى</CardDescription>
+          <CardDescription>ادخل كلمة المرور لإدارة المحتوى</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  required 
-                  placeholder="admin@example.com"
-                />
-            </div>
             <div className="space-y-2">
                 <Label htmlFor="password">كلمة المرور</Label>
                 <Input 
