@@ -30,6 +30,16 @@ export interface UserProfile {
   photoURL: string | null;
 }
 
+export interface SubscriptionDialog {
+  enabled: boolean;
+  title: string;
+  description: string;
+  subscribeText: string;
+  cancelText: string;
+  subscribeUrl: string;
+}
+
+
 export function addCategory(
   db: Firestore,
   category: { name: string; parentId: string | null }
@@ -67,4 +77,16 @@ export function setUserProfile(db: Firestore, userId: string, data: UserProfile)
       });
       errorEmitter.emit('permission-error', permissionError);
   });
+}
+
+export function setSubscriptionDialog(db: Firestore, data: SubscriptionDialog) {
+    const dialogRef = doc(db, 'app-config', 'subscription-dialog');
+    setDoc(dialogRef, data, { merge: true }).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+            path: dialogRef.path,
+            operation: 'write',
+            requestResourceData: data,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    });
 }

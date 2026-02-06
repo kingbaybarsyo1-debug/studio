@@ -59,6 +59,39 @@
           "format": "uri"
         }
       }
+    },
+    "SubscriptionDialog": {
+      "title": "Subscription Dialog",
+      "description": "Configuration for the subscription popup dialog.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the dialog is enabled or not."
+        },
+        "title": {
+          "type": "string",
+          "description": "The main title of the dialog."
+        },
+        "description": {
+          "type": "string",
+          "description": "The descriptive text in the dialog."
+        },
+        "subscribeText": {
+          "type": "string",
+          "description": "Text for the subscribe/action button."
+        },
+        "cancelText": {
+          "type": "string",
+          "description": "Text for the cancel button."
+        },
+        "subscribeUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL the subscribe button links to."
+        }
+      },
+      "required": ["enabled", "title", "description", "subscribeText", "cancelText", "subscribeUrl"]
     }
   },
   "auth": {
@@ -78,6 +111,10 @@
     "/content/{contentId}": {
         "schema": { "$ref": "#/backend/entities/ContentItem" },
         "description": "Stores all content items."
+    },
+    "/app-config/subscription-dialog": {
+        "schema": { "$ref": "#/backend/entities/SubscriptionDialog" },
+        "description": "Single document to store the configuration for the subscription dialog."
     }
   }
 }
