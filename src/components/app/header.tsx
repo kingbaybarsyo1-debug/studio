@@ -1,16 +1,10 @@
-import { Logo } from '@/components/logo';
-import Link from 'next/link';
-
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <Link href="/" className="flex items-center gap-3">
-          <Logo />
-          <h1 className="text-2xl font-headline font-bold text-primary tracking-tight">
-            Visual Vibes
-          </h1>
-        </Link>
+    <header className="sticky top-0 z-50 w-full bg-primary text-primary-foreground shadow-md">
+      <div className="container flex h-16 items-center justify-center">
+        <h1 className="text-2xl font-bold tracking-tight">
+          رفيق المصمم
+        </h1>
       </div>
     </header>
   );

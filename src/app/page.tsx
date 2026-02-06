@@ -1,5 +1,5 @@
-import { VisualVibesPage } from '@/components/app/visual-vibes-page';
+import { DesignerCompanionPage } from '@/components/app/designer-companion-page';
 
 export default function Home() {
-  return <VisualVibesPage />;
+  return <DesignerCompanionPage />;
 }
