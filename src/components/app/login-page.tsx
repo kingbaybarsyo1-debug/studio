@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,9 +11,11 @@ import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { Chrome } from 'lucide-react';
+import { setUserProfile } from '@/firebase/firestore';
 
 export function LoginPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading } = useUser();
@@ -28,13 +30,20 @@ export function LoginPage() {
 
 
   const handleGoogleSignIn = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      setUserProfile(firestore, user.uid, {
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      });
       toast({ title: 'تم تسجيل الدخول بنجاح' });
       router.push('/admin');
     } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
       toast({
         variant: 'destructive',
         title: 'حدث خطأ أثناء تسجيل الدخول',
@@ -45,9 +54,15 @@ export function LoginPage() {
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth || !firestore) return;
     try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        const user = result.user;
+        setUserProfile(firestore, user.uid, {
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+        });
         toast({ title: 'تم تسجيل الدخول بنجاح' });
         router.push('/admin');
     } catch (error: any) {

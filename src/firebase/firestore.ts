@@ -24,6 +24,12 @@ export interface ContentItem {
   categoryId: string;
 }
 
+export interface UserProfile {
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
 export function addCategory(
   db: Firestore,
   category: { name: string; parentId: string | null }
@@ -49,4 +55,16 @@ export function addContentItem(db: Firestore, contentItem: Omit<ContentItem, 'id
         });
         errorEmitter.emit('permission-error', permissionError);
     });
+}
+
+export function setUserProfile(db: Firestore, userId: string, data: UserProfile) {
+  const userRef = doc(db, 'users', userId);
+  setDoc(userRef, data, { merge: true }).catch(async (serverError) => {
+      const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: 'write',
+          requestResourceData: data,
+      });
+      errorEmitter.emit('permission-error', permissionError);
+  });
 }
