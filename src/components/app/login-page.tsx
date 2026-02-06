@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, FormEvent, useEffect, useRef } from 'react';
 import { LoaderCircle, Eye, EyeOff } from 'lucide-react';
+import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 
 const LoginCat = ({ isWinking }: { isWinking: boolean }) => {
   return (
@@ -65,39 +67,50 @@ const LoginCat = ({ isWinking }: { isWinking: boolean }) => {
 
 export function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { user, loading: userLoading } = useUser();
   const { toast } = useToast();
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWinking, setIsWinking] = useState(false);
   const winkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isAdmin = localStorage.getItem('isAdmin');
-      if (isAdmin === 'true') {
-        router.push('/admin');
-      } else {
-        setIsLoading(false);
-      }
+    // If user is already logged in as admin, redirect to admin page
+    if (!userLoading && user?.email === 'admin@example.com') {
+      router.push('/admin');
     }
-  }, [router]);
+  }, [user, userLoading, router]);
 
-  const handleAdminLogin = (e: FormEvent) => {
+  const handleAdminLogin = async (e: FormEvent) => {
     e.preventDefault();
-    const correctPassword = 'admn2026';
+    if (!auth) {
+        toast({
+            variant: 'destructive',
+            title: 'خطأ في المصادقة',
+            description: 'لم يتم إعداد Firebase بشكل صحيح.',
+        });
+        return;
+    }
 
-    if (password === correctPassword) {
-      localStorage.setItem('isAdmin', 'true');
+    setIsSubmitting(true);
+    try {
+      await signInWithEmailAndPassword(auth, 'admin@example.com', password);
       toast({ title: 'تم تسجيل الدخول كمسؤول بنجاح!' });
       router.push('/admin');
-    } else {
+    } catch (error) {
+      const authError = error as AuthError;
+      console.error(authError);
+      
       toast({
         variant: 'destructive',
-        title: 'كلمة مرور غير صالحة',
-        description: 'الرجاء التأكد من كلمة المرور والمحاولة مرة أخرى.',
+        title: 'فشل تسجيل الدخول',
+        description: 'كلمة المرور غير صحيحة، أو أن حساب المسؤول غير موجود في Firebase.',
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -113,7 +126,7 @@ export function LoginPage() {
     }, 150);
   };
   
-  if (isLoading) {
+  if (userLoading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
@@ -142,6 +155,7 @@ export function LoginPage() {
                 onChange={handlePasswordChange}
                 required
                 className="pr-10"
+                placeholder='admn2026'
               />
               <Button
                 type="button"
@@ -153,7 +167,9 @@ export function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
             </div>
-            <Button type="submit" className="w-full font-bold">تسجيل الدخول</Button>
+            <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
+              {isSubmitting ? <LoaderCircle className="animate-spin" /> : "تسجيل الدخول"}
+            </Button>
           </form>
         </CardContent>
       </Card>

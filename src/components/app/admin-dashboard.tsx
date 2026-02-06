@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { addCategory, Category } from '@/firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,26 +40,25 @@ export function AdminDashboard() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const isAdmin = localStorage.getItem('isAdmin');
-      if (isAdmin !== 'true') {
-        router.push('/login');
-      } else {
-        setIsAuthorized(true);
-      }
+    if (!userLoading && user?.email !== 'admin@example.com') {
+      router.push('/login');
     }
-  }, [router]);
-  
+  }, [user, userLoading, router]);
+
   const categoriesQuery = useMemo(() => {
     if (!firestore) return null;
     return collection(firestore, 'categories');
   }, [firestore]);
-  const { data: categories, loading: categoriesLoading } = useCollection<Category>(categoriesQuery);
-  
-  const mainCategories = useMemo(() => categories?.filter(c => !c.parentId) || [], [categories]);
+  const { data: categories, loading: categoriesLoading } =
+    useCollection<Category>(categoriesQuery);
+
+  const mainCategories = useMemo(
+    () => categories?.filter((c) => !c.parentId) || [],
+    [categories]
+  );
 
   const {
     register: registerCategory,
@@ -79,11 +78,10 @@ export function AdminDashboard() {
   } = useForm({
     resolver: zodResolver(subCategorySchema),
   });
-  
+
   useEffect(() => {
     registerSubCategory('parentId');
   }, [registerSubCategory]);
-
 
   const onAddCategory = (data: z.infer<typeof categorySchema>) => {
     if (!firestore) return;
@@ -99,28 +97,35 @@ export function AdminDashboard() {
     resetSubCategory();
   };
 
-  if (!isAuthorized) {
+  if (userLoading || !user) {
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-        </div>
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
     <div className="container mx-auto grid gap-8 px-4 py-8">
       <h1 className="text-3xl font-bold">لوحة التحكم</h1>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>إضافة قسم رئيسي</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCategorySubmit(onAddCategory)} className="flex flex-col gap-4">
+          <form
+            onSubmit={handleCategorySubmit(onAddCategory)}
+            className="flex flex-col gap-4"
+          >
             <div>
-                <Label htmlFor="categoryName">اسم القسم</Label>
-                <Input id="categoryName" {...registerCategory('name')} />
-                {categoryErrors.name && <p className="text-destructive text-sm mt-1">{categoryErrors.name.message as string}</p>}
+              <Label htmlFor="categoryName">اسم القسم</Label>
+              <Input id="categoryName" {...registerCategory('name')} />
+              {categoryErrors.name && (
+                <p className="mt-1 text-sm text-destructive">
+                  {categoryErrors.name.message as string}
+                </p>
+              )}
             </div>
             <Button type="submit">إضافة قسم</Button>
           </form>
@@ -132,25 +137,49 @@ export function AdminDashboard() {
           <CardTitle>إضافة قسم داخل قسم</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubCategorySubmit(onAddSubCategory)} className="flex flex-col gap-4">
+          <form
+            onSubmit={handleSubCategorySubmit(onAddSubCategory)}
+            className="flex flex-col gap-4"
+          >
             <div>
               <Label>اختر القسم الرئيسي</Label>
-              <Select onValueChange={(value) => setSubCategoryValue('parentId', value)}>
+              <Select
+                onValueChange={(value) => setSubCategoryValue('parentId', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="اختر قسمًا رئيسيًا" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoriesLoading ? <SelectItem value="loading" disabled>جار تحميل الأقسام...</SelectItem> : mainCategories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
+                  {categoriesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      جار تحميل الأقسام...
+                    </SelectItem>
+                  ) : (
+                    mainCategories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
-              {subCategoryErrors.parentId && <p className="text-destructive text-sm mt-1">{subCategoryErrors.parentId.message as string}</p>}
+              {subCategoryErrors.parentId && (
+                <p className="mt-1 text-sm text-destructive">
+                  {subCategoryErrors.parentId.message as string}
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="subCategoryName">اسم القسم الفرعي</Label>
-              <Input id="subCategoryName" {...registerSubCategory('name')} />
-              {subCategoryErrors.name && <p className="text-destructive text-sm mt-1">{subCategoryErrors.name.message as string}</p>}
+              <Input
+                id="subCategoryName"
+                {...registerSubCategory('name')}
+              />
+              {subCategoryErrors.name && (
+                <p className="mt-1 text-sm text-destructive">
+                  {subCategoryErrors.name.message as string}
+                </p>
+              )}
             </div>
             <Button type="submit">إضافة قسم فرعي</Button>
           </form>
