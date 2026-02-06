@@ -1,20 +1,63 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCollection, useFirestore } from '@/firebase';
-import { Category, ContentItem } from '@/firebase/firestore';
+import { Category, ContentItem, addContentItem } from '@/firebase/firestore';
 import { collection, query, where } from 'firebase/firestore';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Smile } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Form imports
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+
+// New content schema
+const contentSchema = z.object({
+  title: z.string().min(1, 'النص مطلوب'),
+  imageUrl: z.string().url('رابط صورة غير صالح'),
+  fileUrl: z.string().url('رابط ملف غير صالح'),
+});
 
 export default function CategoryPage() {
   const firestore = useFirestore();
   const params = useParams();
   const categoryId = params.id as string;
+  const { toast } = useToast();
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isAdminInStorage = localStorage.getItem('isAdmin');
+      setIsAdmin(isAdminInStorage === 'true');
+    }
+  }, []);
+
+  // Form hook
+  const {
+    register: registerContent,
+    handleSubmit: handleContentSubmit,
+    reset: resetContent,
+    formState: { errors: contentErrors },
+  } = useForm({
+    resolver: zodResolver(contentSchema),
+  });
+
+  const onAddContent = (data: z.infer<typeof contentSchema>) => {
+    if (!firestore || !categoryId) return;
+    addContentItem(firestore, { ...data, categoryId });
+    toast({ title: 'تمت إضافة المحتوى بنجاح' });
+    resetContent();
+  };
 
   const subCategoriesQuery = useMemo(() => {
     if (!firestore || !categoryId) return null;
@@ -29,6 +72,34 @@ export default function CategoryPage() {
   const { data: contentItems, loading: contentItemsLoading } = useCollection<ContentItem>(contentItemsQuery);
   
   const loading = subCategoriesLoading || contentItemsLoading;
+
+  const AdminContentForm = () => (
+    <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>إضافة محتوى جديد في هذا القسم</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleContentSubmit(onAddContent)} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="contentTitle">عنوان المشروع</Label>
+              <Input id="contentTitle" {...registerContent('title')} />
+              {contentErrors.title && <p className="text-destructive text-sm mt-1">{contentErrors.title.message as string}</p>}
+            </div>
+            <div>
+              <Label htmlFor="contentImageUrl">لنك الصورة</Label>
+              <Input id="contentImageUrl" {...registerContent('imageUrl')} />
+              {contentErrors.imageUrl && <p className="text-destructive text-sm mt-1">{contentErrors.imageUrl.message as string}</p>}
+            </div>
+            <div>
+              <Label htmlFor="contentFileUrl">لنك المشروع</Label>
+              <Input id="contentFileUrl" {...registerContent('fileUrl')} />
+              {contentErrors.fileUrl && <p className="text-destructive text-sm mt-1">{contentErrors.fileUrl.message as string}</p>}
+            </div>
+            <Button type="submit">إضافة</Button>
+          </form>
+        </CardContent>
+      </Card>
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -82,6 +153,8 @@ export default function CategoryPage() {
       {!loading && subCategories?.length === 0 && contentItems?.length === 0 && (
           <p className="text-center text-muted-foreground mt-8">لا يوجد محتوى في هذا القسم حاليًا.</p>
       )}
+
+      {isAdmin && <AdminContentForm />}
     </div>
   );
 }

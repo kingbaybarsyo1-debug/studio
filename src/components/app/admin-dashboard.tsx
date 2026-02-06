@@ -5,12 +5,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCollection, useFirestore } from '@/firebase';
-import { addCategory, addContentItem, Category } from '@/firebase/firestore';
+import { addCategory, Category } from '@/firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -24,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 
@@ -35,13 +34,6 @@ const categorySchema = z.object({
 const subCategorySchema = z.object({
   parentId: z.string().min(1, 'القسم الرئيسي مطلوب'),
   name: z.string().min(1, 'اسم القسم الفرعي مطلوب'),
-});
-
-const contentSchema = z.object({
-  categoryId: z.string().min(1, 'القسم مطلوب'),
-  title: z.string().min(1, 'النص مطلوب'),
-  imageUrl: z.string().url('رابط صورة غير صالح'),
-  fileUrl: z.string().url('رابط ملف غير صالح'),
 });
 
 export function AdminDashboard() {
@@ -87,21 +79,10 @@ export function AdminDashboard() {
   } = useForm({
     resolver: zodResolver(subCategorySchema),
   });
-
-  const {
-    register: registerContent,
-    handleSubmit: handleContentSubmit,
-    reset: resetContent,
-    setValue: setContentValue,
-    formState: { errors: contentErrors },
-  } = useForm({
-    resolver: zodResolver(contentSchema),
-  });
   
   useEffect(() => {
     registerSubCategory('parentId');
-    registerContent('categoryId');
-  }, [registerSubCategory, registerContent]);
+  }, [registerSubCategory]);
 
 
   const onAddCategory = (data: z.infer<typeof categorySchema>) => {
@@ -118,13 +99,6 @@ export function AdminDashboard() {
     resetSubCategory();
   };
 
-  const onAddContent = (data: z.infer<typeof contentSchema>) => {
-    if (!firestore) return;
-    addContentItem(firestore, data);
-    toast({ title: 'تمت إضافة المحتوى بنجاح' });
-    resetContent();
-  };
-  
   if (!isAuthorized) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -179,46 +153,6 @@ export function AdminDashboard() {
               {subCategoryErrors.name && <p className="text-destructive text-sm mt-1">{subCategoryErrors.name.message as string}</p>}
             </div>
             <Button type="submit">إضافة قسم فرعي</Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>إضافة محتوى</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleContentSubmit(onAddContent)} className="flex flex-col gap-4">
-            <div>
-              <Label>اختر القسم</Label>
-              <Select onValueChange={(value) => setContentValue('categoryId', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر قسمًا" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesLoading ? <SelectItem value="loading" disabled>جار تحميل الأقسام...</SelectItem> : categories?.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {contentErrors.categoryId && <p className="text-destructive text-sm mt-1">{contentErrors.categoryId.message as string}</p>}
-            </div>
-            <div>
-              <Label htmlFor="contentTitle">النص (العنوان)</Label>
-              <Input id="contentTitle" {...registerContent('title')} />
-              {contentErrors.title && <p className="text-destructive text-sm mt-1">{contentErrors.title.message as string}</p>}
-            </div>
-            <div>
-              <Label htmlFor="contentImageUrl">رابط الصورة</Label>
-              <Input id="contentImageUrl" {...registerContent('imageUrl')} />
-              {contentErrors.imageUrl && <p className="text-destructive text-sm mt-1">{contentErrors.imageUrl.message as string}</p>}
-            </div>
-            <div>
-              <Label htmlFor="contentFileUrl">رابط الملف</Label>
-              <Input id="contentFileUrl" {...registerContent('fileUrl')} />
-              {contentErrors.fileUrl && <p className="text-destructive text-sm mt-1">{contentErrors.fileUrl.message as string}</p>}
-            </div>
-            <Button type="submit">إضافة محتوى</Button>
           </form>
         </CardContent>
       </Card>
