@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Header } from '@/components/app/header';
+import { BottomNavbar } from '@/components/app/bottom-navbar';
 
 export const metadata: Metadata = {
   title: 'رفيق المصمم',
@@ -22,7 +23,8 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background">
         <Header />
-        <main>{children}</main>
+        <main className="pb-20">{children}</main>
+        <BottomNavbar />
         <Toaster />
       </body>
     </html>
