@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Heart, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase/auth/use-user';
 
 const baseNavItems = [
   { href: '/', icon: Home, label: 'الرئيسية' },
@@ -15,10 +14,9 @@ const adminNavItem = { href: '/admin', icon: UserCog, label: 'الادمن' };
 
 export function BottomNavbar() {
   const pathname = usePathname();
-  const { user } = useUser();
 
-  const navItems = user ? [...baseNavItems, adminNavItem] : baseNavItems;
-  const gridColsClass = user ? 'grid-cols-3' : 'grid-cols-2';
+  const navItems = [...baseNavItems, adminNavItem];
+  const gridColsClass = 'grid-cols-3';
 
 
   return (
