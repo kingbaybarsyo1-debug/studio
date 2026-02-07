@@ -165,8 +165,18 @@ export function LoginPage() {
       return;
     }
     setGoogleLoading(true);
-    const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+        console.error("Google Sign-In Error", error);
+        toast({
+            variant: "destructive",
+            title: "خطأ في تسجيل الدخول",
+            description: "لم نتمكن من بدء عملية تسجيل الدخول باستخدام جوجل. يرجى المحاولة مرة أخرى.",
+        });
+        setGoogleLoading(false);
+    }
   };
 
   if (checkingRedirect) {
@@ -232,7 +242,7 @@ export function LoginPage() {
           variant="outline"
           className="w-full text-lg"
           onClick={handleGoogleSignIn}
-          disabled={googleLoading}
+          disabled={googleLoading || loading}
         >
           {googleLoading ? (
             '...جاري'
