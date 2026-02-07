@@ -1,36 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider,
+} from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { setUserProfile } from '@/firebase/firestore';
 import { isAdminUser } from '@/lib/utils';
+import Loading from '@/app/loading';
 
 const GoogleIcon = () => (
-    <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
+  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
+    <path
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      fill="#4285F4"
+    />
+    <path
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      fill="#34A853"
+    />
+    <path
+      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+      fill="#FBBC05"
+    />
+    <path
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      fill="#EA4335"
+    />
+  </svg>
+);
 
 const CatEye = ({ isClosed }: { isClosed: boolean }) => (
   <svg
@@ -39,12 +45,8 @@ const CatEye = ({ isClosed }: { isClosed: boolean }) => (
     className="h-24 w-24"
   >
     <g fill="hsl(var(--foreground))">
-      <path
-        d="M25.021 114.28c-3.905-3.905-3.905-10.207 0-14.112l14.112-14.112c3.905-3.905 10.207-3.905 14.112 0s3.905 10.207 0 14.112l-14.112 14.112c-3.905 3.905-10.207 3.905-14.112 0z"
-      />
-      <path
-        d="M114.979 114.28c3.905-3.905 3.905-10.207 0-14.112l-14.112-14.112c-3.905-3.905-10.207-3.905-14.112 0s-3.905 10.207 0 14.112l14.112 14.112c3.905 3.905 10.207 3.905 14.112 0z"
-      />
+      <path d="M25.021 114.28c-3.905-3.905-3.905-10.207 0-14.112l14.112-14.112c3.905-3.905 10.207-3.905 14.112 0s3.905 10.207 0 14.112l-14.112 14.112c-3.905 3.905-10.207 3.905-14.112 0z" />
+      <path d="M114.979 114.28c3.905-3.905 3.905-10.207 0-14.112l-14.112-14.112c-3.905-3.905-10.207-3.905-14.112 0s-3.905 10.207 0 14.112l14.112 14.112c3.905 3.905 10.207 3.905 14.112 0z" />
       <g>
         {isClosed ? (
           <>
@@ -61,7 +63,6 @@ const CatEye = ({ isClosed }: { isClosed: boolean }) => (
   </svg>
 );
 
-
 export function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
@@ -73,22 +74,70 @@ export function LoginPage() {
   const [isFocus, setIsFocus] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
 
   const adminEmail = 'admin@example.com';
-  
+
+  useEffect(() => {
+    if (!auth) {
+      setCheckingRedirect(false);
+      return;
+    }
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          const user = result.user;
+          if (firestore) {
+            setUserProfile(firestore, user.uid, {
+              email: user.email,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+            });
+          }
+
+          toast({
+            title: 'تم تسجيل الدخول بنجاح!',
+            description: `أهلاً بك، ${user.displayName}`,
+          });
+
+          if (isAdminUser(user.email)) {
+            router.push('/admin');
+          } else {
+            router.push('/');
+          }
+        } else {
+          setCheckingRedirect(false);
+        }
+      })
+      .catch((error) => {
+        console.error('Google Sign-In Redirect Error:', error);
+        toast({
+          variant: 'destructive',
+          title: 'فشل تسجيل الدخول عبر جوجل',
+          description: error.message || 'حدث خطأ غير متوقع.',
+        });
+        setCheckingRedirect(false);
+      });
+  }, [auth, firestore, router, toast]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-        toast({
-            variant: "destructive",
-            title: "خطأ",
-            description: "خدمة المصادقة غير متاحة.",
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'خطأ',
+        description: 'خدمة المصادقة غير متاحة.',
+      });
+      return;
     }
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, adminEmail, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        adminEmail,
+        password
+      );
       if (isAdminUser(userCredential.user.email)) {
         router.push('/admin');
       } else {
@@ -97,72 +146,46 @@ export function LoginPage() {
     } catch (error: any) {
       console.error(error);
       toast({
-        variant: "destructive",
-        title: "فشل تسجيل الدخول",
-        description: "بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.",
+        variant: 'destructive',
+        title: 'فشل تسجيل الدخول',
+        description: 'بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.',
       });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth || !firestore) {
+    if (!auth) {
       toast({
-          variant: "destructive",
-          title: "خطأ",
-          description: "خدمة المصادقة أو قاعدة البيانات غير متاحة.",
+        variant: 'destructive',
+        title: 'خطأ',
+        description: 'خدمة المصادقة غير متاحة.',
       });
       return;
     }
     setGoogleLoading(true);
     const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-
-        setUserProfile(firestore, user.uid, {
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-        });
-        
-        toast({
-            title: 'تم تسجيل الدخول بنجاح!',
-            description: `أهلاً بك، ${user.displayName}`,
-        });
-
-        if (isAdminUser(user.email)) {
-            router.push('/admin');
-        } else {
-            router.push('/');
-        }
-
-    } catch (error: any) {
-        console.error("Google Sign-In Error:", error);
-        toast({
-            variant: "destructive",
-            title: "فشل تسجيل الدخول عبر جوجل",
-            description: error.message || "حدث خطأ غير متوقع.",
-        });
-    } finally {
-        setGoogleLoading(false);
-    }
+    await signInWithRedirect(auth, provider);
   };
+
+  if (checkingRedirect) {
+    return <Loading />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="flex justify-center">
-            <CatEye isClosed={isFocus || password.length > 0} />
+          <CatEye isClosed={isFocus || password.length > 0} />
         </div>
-        
+
         <h1 className="mb-8 text-center text-3xl font-bold text-primary">
           تسجيل الدخول
         </h1>
-        
+
         <form onSubmit={handleLogin} className="space-y-4">
-           <div className="relative">
+          <div className="relative">
             <Input
               id="email"
               type="email"
@@ -187,7 +210,9 @@ export function LoginPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
-              aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              aria-label={
+                showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'
+              }
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -204,21 +229,20 @@ export function LoginPage() {
         </div>
 
         <Button
-            variant="outline"
-            className="w-full text-lg"
-            onClick={handleGoogleSignIn}
-            disabled={googleLoading}
+          variant="outline"
+          className="w-full text-lg"
+          onClick={handleGoogleSignIn}
+          disabled={googleLoading}
         >
-            {googleLoading ? (
-                '...جاري'
-            ) : (
-                <>
-                    <GoogleIcon />
-                    تسجيل الدخول باستخدام جوجل
-                </>
-            )}
+          {googleLoading ? (
+            '...جاري'
+          ) : (
+            <>
+              <GoogleIcon />
+              تسجيل الدخول باستخدام جوجل
+            </>
+          )}
         </Button>
-
       </div>
     </div>
   );
