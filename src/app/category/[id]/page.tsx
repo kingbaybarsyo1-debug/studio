@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { isAdminUser } from '@/lib/utils';
 
 // New content schema
 const contentSchema = z.object({
@@ -34,7 +35,7 @@ export default function CategoryPage() {
   const { toast } = useToast();
   const { user } = useUser();
 
-  const isAdmin = user?.email === 'admin@example.com';
+  const isAdmin = isAdminUser(user?.email);
 
   // Form hook
   const {
