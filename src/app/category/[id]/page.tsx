@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useUser } from '@/firebase';
 import { Category, ContentItem, addContentItem } from '@/firebase/firestore';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,8 +32,9 @@ export default function CategoryPage() {
   const params = useParams();
   const categoryId = params.id as string;
   const { toast } = useToast();
+  const { user } = useUser();
 
-  const isAdmin = true;
+  const isAdmin = user?.email === 'admin@example.com';
 
   // Form hook
   const {
