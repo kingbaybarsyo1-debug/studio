@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCollection, useDoc, useFirestore, useUser } from '@/firebase';
+import { useCollection, useDoc, useFirestore } from '@/firebase';
 import {
   addCategory,
   Category,
@@ -30,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { collection, doc } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
 import { LoaderCircle, Save } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '../ui/textarea';
@@ -180,15 +179,7 @@ function SubscriptionDialogManager() {
 
 export function AdminDashboard() {
   const firestore = useFirestore();
-  const router = useRouter();
   const { toast } = useToast();
-  const { user, loading: userLoading } = useUser();
-
-  useEffect(() => {
-    if (!userLoading && user?.email !== 'admin@example.com') {
-      router.push('/login');
-    }
-  }, [user, userLoading, router]);
 
   const categoriesQuery = useMemo(() => {
     if (!firestore) return null;
@@ -238,14 +229,6 @@ export function AdminDashboard() {
     toast({ title: 'تمت إضافة القسم الفرعي بنجاح' });
     resetSubCategory();
   };
-
-  if (userLoading || !user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto grid gap-8 px-4 py-8">
