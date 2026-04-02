@@ -16,9 +16,8 @@ export function isValidHex(hex: string): boolean {
   return /^([0-9A-F]{3}){1,2}$/i.test(hex.replace("#", ""));
 }
 
-const adminEmails = ['admin@example.com', 'kingbaybars.yo1@gmail.com'];
-
+// تم استبدال التحقق من الإيميلات بالتحقق من حقل role في Firestore
 export function isAdminUser(email: string | null | undefined): boolean {
-    if (!email) return false;
-    return adminEmails.includes(email);
+    // هذه الدالة أصبحت قديمة، يفضل الاعتماد على حقل role من Firestore مباشرة
+    return false;
 }
